@@ -58,7 +58,7 @@ const AIPosAssistant = ({ items }: { items: any[] }) => {
         setLoading(true);
         setIsOpen(true);
         try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
             const itemNames = items.map(i => `${i.nameEn} (${i.genericName || 'Generic'})`).join(', ');
             const response = await ai.models.generateContent({
                 model: 'gemini-3-flash-preview',
@@ -71,7 +71,7 @@ const AIPosAssistant = ({ items }: { items: any[] }) => {
             setAdvice(response.text || "No specific warnings for this combination.");
         } catch (error) {
             console.error(error);
-            setAdvice("Unable to contact the AI Pharmacist at the moment.");
+            setAdvice("Unable to contact the AI Pharmacist. Check system configuration.");
         } finally {
             setLoading(false);
         }
@@ -304,7 +304,7 @@ const POS = () => {
             ))}
           </div>
           {scannedInfo && (
-             <div className={`p-3 rounded-xl text-sm flex items-center gap-2 animate-in slide-in-from-top-2 fade-in ${scannedInfo.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : scannedInfo.type === 'warning' ? 'bg-amber-50 text-amber-700 border border-amber-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>
+             <div className={`p-3 rounded-xl text-sm flex items-center gap-2 animate-in slide-in-from-top-2 fade-in ${scannedInfo.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : scannedInfo.type === 'warning' ? 'bg-amber-50 text-amber-700 border border-amber-100' : 'bg-red-50 text-red-700 border-red-100'}`}>
                 {scannedInfo.type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
                 {scannedInfo.msg}
              </div>
@@ -418,4 +418,23 @@ const POS = () => {
                   <form onSubmit={(e) => { e.preventDefault(); handleQuickAdd(Object.fromEntries(new FormData(e.target as HTMLFormElement))); }} className="space-y-3">
                       <Input name="name" placeholder="Name (EN)" required />
                       <Input name="price" type="number" placeholder="Price" required />
-                      <select name="category" className="w-full p-2 border rounded-xl">{categories.filter(c => c!=='All').map(c => <option key={c} value={c}>{c}</
+                      <select name="category" className="w-full p-2 border rounded-xl">{categories.filter(c => c!=='All').map(c => <option key={c} value={c}>{c}</option>)}</select>
+                      <div className="flex gap-3 mt-6">
+                          <Button variant="outline" className="flex-1" type="button" onClick={() => setNotFoundScan(null)}>Cancel</Button>
+                          <Button variant="primary" className="flex-1" type="submit">Quick Add</Button>
+                      </div>
+                  </form>
+              </div>
+          </div>
+      )}
+
+      {isScannerOpen && (
+        <div className="fixed inset-0 bg-black z-50 flex flex-col">
+           <CameraScanner onScan={(code) => { processBarcode(code); setIsScannerOpen(false); }} onClose={() => setIsScannerOpen(false)} className="w-full h-full" />
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default POS;

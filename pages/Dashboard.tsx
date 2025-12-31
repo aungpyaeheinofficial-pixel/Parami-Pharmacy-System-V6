@@ -99,7 +99,7 @@ const AIInsights = () => {
                 category: p.category
             }));
 
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
             const response = await ai.models.generateContent({
                 model: 'gemini-3-flash-preview',
                 contents: `As an expert pharmacy consultant, analyze this inventory data and provide 3 brief, actionable business insights (Myanmar/English mixed) for Parami Pharmacy. Focus on stock optimization and reordering. Keep it professional but clear.
@@ -115,7 +115,7 @@ const AIInsights = () => {
             setInsight(response.text || "Unable to generate insights at this time.");
         } catch (error) {
             console.error("AI Insight Error:", error);
-            setInsight("Connection to AI Brain interrupted. Please ensure your environment is configured correctly.");
+            setInsight("The AI Brain is busy optimizing data. Please ensure your API_KEY is set and try again.");
         } finally {
             setLoading(false);
         }
