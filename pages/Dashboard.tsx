@@ -1,11 +1,11 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
-import { TrendingUp, Users, AlertTriangle, ArrowUpRight, ArrowDownRight, Calendar, Filter, RefreshCw, ShoppingCart, Activity, Package, Sparkles, BrainCircuit, ChevronRight, Loader2 } from 'lucide-react';
+import { TrendingUp, Users, AlertTriangle, ArrowUpRight, ArrowDownRight, RefreshCw, ShoppingCart, Activity, Sparkles, BrainCircuit, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Button } from '../components/UI';
 import { useProductStore, useTransactionStore, useCustomerStore, useDistributionStore } from '../store';
-import { Transaction, DistributionOrder } from '../types';
+import { Transaction } from '../types';
 import { GoogleGenAI } from "@google/genai";
 
 interface DashboardMetrics {
@@ -102,19 +102,20 @@ const AIInsights = () => {
             const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
             const response = await ai.models.generateContent({
                 model: 'gemini-3-flash-preview',
-                contents: `As an expert pharmacy consultant, analyze this inventory data and provide 3 brief, actionable business insights (Myanmar/English mixed) for Parami Pharmacy. Focus on stock optimization and reordering. 
-                Inventory Summary: ${JSON.stringify(inventorySummary.slice(0, 15))}
+                contents: `As an expert pharmacy consultant, analyze this inventory data and provide 3 brief, actionable business insights (Myanmar/English mixed) for Parami Pharmacy. Focus on stock optimization and reordering. Keep it professional but clear.
+                Inventory Summary: ${JSON.stringify(inventorySummary.slice(0, 20))}
                 Low Stock Count: ${lowStock.length}`,
                 config: {
+                    thinkingConfig: { thinkingBudget: 0 },
                     temperature: 0.7,
-                    maxOutputTokens: 500,
+                    maxOutputTokens: 800,
                 }
             });
 
             setInsight(response.text || "Unable to generate insights at this time.");
         } catch (error) {
             console.error("AI Insight Error:", error);
-            setInsight("Connection to AI Brain interrupted. Please try again later.");
+            setInsight("Connection to AI Brain interrupted. Please ensure your environment is configured correctly.");
         } finally {
             setLoading(false);
         }
@@ -160,7 +161,7 @@ const AIInsights = () => {
                     </div>
                 ) : (
                     <div className="py-4 text-center">
-                        <p className="text-sm text-slate-500 italic">"I can analyze your stock levels and suggest reorders."</p>
+                        <p className="text-sm text-slate-500 italic">"I can analyze your stock levels and suggest reorders based on trends."</p>
                     </div>
                 )}
             </div>
@@ -193,32 +194,33 @@ const Dashboard = () => {
     setLoading(true);
     setTimeout(() => {
         const { start, end, prevStart, prevEnd } = getDateRange(filterType);
-        const currentTrans = transactions.filter(t => {
+        const currentTrans = transactions.filter((t: any) => {
             const d = new Date(t.date);
             return t.type === 'INCOME' && d >= start && d <= end;
         });
-        const prevTrans = transactions.filter(t => {
+        const prevTrans = transactions.filter((t: any) => {
             const d = new Date(t.date);
             return t.type === 'INCOME' && d >= prevStart && d <= prevEnd;
         });
         const isCompletedOrder = (status: string) => ['DELIVERED', 'COMPLETED'].includes(status);
-        const currentOrders = orders.filter(o => {
+        const currentOrders = orders.filter((o: any) => {
             const d = new Date(o.date);
             return isCompletedOrder(o.status) && d >= start && d <= end;
         });
-        const prevOrders = orders.filter(o => {
+        const prevOrders = orders.filter((o: any) => {
             const d = new Date(o.date);
             return isCompletedOrder(o.status) && d >= prevStart && d <= prevEnd;
         });
-        const transRevenue = currentTrans.reduce((sum, t) => sum + t.amount, 0);
-        const orderRevenue = currentOrders.reduce((sum, o) => sum + o.total, 0);
+        const transRevenue = currentTrans.reduce((sum: number, t: any) => sum + t.amount, 0);
+        const orderRevenue = currentOrders.reduce((sum: number, o: any) => sum + o.total, 0);
         const totalRevenue = transRevenue + orderRevenue;
-        const prevTransRev = prevTrans.reduce((sum, t) => sum + t.amount, 0);
-        const prevOrderRev = prevOrders.reduce((sum, o) => sum + o.total, 0);
+        const prevTransRev = prevTrans.reduce((sum: number, t: any) => sum + t.amount, 0);
+        const prevOrderRev = prevOrders.reduce((sum: number, o: any) => sum + o.total, 0);
         const prevTotalRevenue = prevTransRev + prevOrderRev;
         const growth = prevTotalRevenue === 0 ? 100 : ((totalRevenue - prevTotalRevenue) / prevTotalRevenue) * 100;
         const lowStock = products.filter(p => p.stockLevel <= (p.minStockLevel || 10)).length;
         const totalCust = customers.length;
+        
         const chartMap = new Map<string, number>();
         const labelFormat = filterType === 'Today' ? 'hour' : filterType === 'Year' ? 'month' : 'day';
         const addToChart = (dateStr: string, amount: number) => {
@@ -229,25 +231,27 @@ const Dashboard = () => {
             else key = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
             chartMap.set(key, (chartMap.get(key) || 0) + amount);
         };
-        currentTrans.forEach(t => addToChart(t.date, t.amount));
-        currentOrders.forEach(o => addToChart(o.date, o.total));
+        currentTrans.forEach((t: any) => addToChart(t.date, t.amount));
+        currentOrders.forEach((o: any) => addToChart(o.date, o.total));
         const chartData = Array.from(chartMap, ([name, revenue]) => ({ name, revenue }));
+        
         const categoryMap = new Map<string, number>();
-        currentTrans.forEach(t => categoryMap.set(t.category, (categoryMap.get(t.category) || 0) + t.amount));
-        currentOrders.forEach(o => {
-            o.itemsList.forEach(item => {
+        currentTrans.forEach((t: any) => categoryMap.set(t.category, (categoryMap.get(t.category) || 0) + t.amount));
+        currentOrders.forEach((o: any) => {
+            o.itemsList?.forEach((item: any) => {
                 const product = products.find(p => p.nameEn === item.name);
                 const cat = product?.category || 'Wholesale';
                 categoryMap.set(cat, (categoryMap.get(cat) || 0) + (item.price * item.quantity));
             });
         });
         const categoryData = Array.from(categoryMap, ([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 5);
+        
         setMetrics({
             totalRevenue,
             revenueGrowth: growth,
             lowStockCount: lowStock,
             totalCustomers: totalCust,
-            recentTransactions: [...currentTrans].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5),
+            recentTransactions: [...currentTrans].sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5),
             chartData,
             categoryData
         });
